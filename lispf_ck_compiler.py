@@ -88,65 +88,66 @@ def do_before(command, old_array):
 
     return new_array
 
-def lisp_f_ck_interpreter(tree, source_array, count):
+def lisp_f_ck_compiler(tree, output_list):
     loop_active = False
     i = 0
+    j = 0
     while i < len(tree):
         if isinstance(tree[i], tuple):
-            source_array, count = lisp_f_ck_interpreter(tree[i], source_array, count)
+            output_list = lisp_f_ck_compiler(tree[i], output_list)
         elif tree[i] == 'inc':
-            source_array[count] += 1
+            output_list.append('+')
         elif tree[i] == 'dec':
-            source_array[count] -= 1
+            output_list.append('-')
         elif tree[i] == 'right':
-            count += 1
-            if len(source_array) - 1 < count:
-                source_array.append(0)
+            output_list.append('>')
         elif tree[i] == 'left':
-            count -= 1
-            if count < 0:
-                source_array.append(0)
+            output_list.append('<')
         elif tree[i] == 'add':
             i += 1
-            source_array[count] += tree[i]
+            while j < tree[i]:
+                output_list.append('+')
+                j += 1
+
+            j = 0
         elif tree[i] == 'sub':
             i += 1
-            source_array[count] -= tree[i]
+            while j < tree[i]:
+                output_list.append('+')
+                j += 1
+
+            j = 0
         elif tree[i] == 'print':
-            print(chr(source_array[count]), end='')
+            output_list.append('.')
         elif tree[i] == 'read':
-            source_array[count] = input('input: ')
+            output_list.append(',')
         elif tree[i] == 'do-after':
             i += 1 # pass to command
             command = tree[i]
             i += 1 # pass to tuple
             array = do_after(command, list(tree[i]))
-            lisp_f_ck_interpreter(array, source_array, count)
+            output_list = lisp_f_ck_compiler(array, output_list)
         elif tree[i] == 'do-before':
             i += 1 # pass to command
             command = tree[i]
             i += 1 # pass to tuple
             array = do_before(command, list(tree[i]))
-            lisp_f_ck_interpreter(array, source_array, count)
+            output_list = lisp_f_ck_compiler(array, output_list)
         elif tree[i] == 'loop':
-            if source_array[count] == 0:
-                loop_active = False
-                break
-            else:
-                loop_active = True
-        if loop_active == True and i == len(tree) - 1:
-            i = -1
+            output_list.append('[')
+            output_list = lisp_f_ck_compiler(tree[i], output_list)
+            output_list.append(']')
 
         i += 1
 
-    return source_array, count
+    return output_list
 
 def eval(tree):
-    source_array = [0]
-    count = 0
-    print('\nOutput:')
-    source_array, count = lisp_f_ck_interpreter(tree, source_array, count)
-    print()
+    file_code = open('saida.bf', 'w')
+    output_list = []
+    output_list = lisp_f_ck_compiler(tree, output_list)
+    file_code.write(''.join(output_list))
+    file_code.close()
 
 @click.command()
 @click.argument('source', type=click.File('r'))
